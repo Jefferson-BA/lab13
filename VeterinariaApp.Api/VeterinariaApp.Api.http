@@ -1,0 +1,144 @@
+@baseUrl = http://localhost:5130
+@clienteId = 1
+@mascotaId = 1
+
+### 200 - Listar clientes
+GET {{baseUrl}}/api/clientes
+
+### 200 o 404 - Obtener cliente
+GET {{baseUrl}}/api/clientes/{{clienteId}}
+
+### 201 - Copiar el Id de respuesta en clienteId para probar con este registro
+POST {{baseUrl}}/api/clientes
+Content-Type: application/json
+
+{
+  "nombre": "Pedro",
+  "apellido": "García",
+  "dni": "45678901",
+  "telefono": "954321098",
+  "email": "pedro@example.com"
+}
+
+### 204 - Actualizar cliente
+PUT {{baseUrl}}/api/clientes/{{clienteId}}
+Content-Type: application/json
+
+{
+  "nombre": "Pedro",
+  "apellido": "García",
+  "dni": "45678901",
+  "telefono": "900123456",
+  "email": "pedro.actualizado@example.com"
+}
+
+### 200 - Ruta anidada (404 si el cliente no existe)
+GET {{baseUrl}}/api/clientes/{{clienteId}}/mascotas
+
+### 200 - Listar mascotas
+GET {{baseUrl}}/api/mascotas
+
+### 200 o 404 - Obtener mascota
+GET {{baseUrl}}/api/mascotas/{{mascotaId}}
+
+### 201 - Crear mascota; copiar el Id devuelto en mascotaId
+POST {{baseUrl}}/api/mascotas
+Content-Type: application/json
+
+{
+  "nombre": "Toby",
+  "especie": "Perro",
+  "raza": "Mestizo",
+  "edad": 2,
+  "clienteId": {{clienteId}}
+}
+
+### 204 - Actualizar mascota
+PUT {{baseUrl}}/api/mascotas/{{mascotaId}}
+Content-Type: application/json
+
+{
+  "nombre": "Toby",
+  "especie": "Perro",
+  "raza": "Mestizo",
+  "edad": 3,
+  "clienteId": {{clienteId}}
+}
+
+### 200 - Filtro por query string
+GET {{baseUrl}}/api/mascotas/buscar?especie=Perro
+
+### 409 - Ejecutar mientras el cliente tenga al menos una mascota
+DELETE {{baseUrl}}/api/clientes/{{clienteId}}
+
+### 409 - Edad superior a 30 validada por el servicio
+POST {{baseUrl}}/api/mascotas
+Content-Type: application/json
+
+{
+  "nombre": "Toby",
+  "especie": "Perro",
+  "raza": "Mestizo",
+  "edad": 31,
+  "clienteId": {{clienteId}}
+}
+
+### 409 - Cliente inexistente
+POST {{baseUrl}}/api/mascotas
+Content-Type: application/json
+
+{
+  "nombre": "Toby",
+  "especie": "Perro",
+  "raza": "Mestizo",
+  "edad": 2,
+  "clienteId": 2147483647
+}
+
+### 400 - Campos obligatorios ausentes
+POST {{baseUrl}}/api/clientes
+Content-Type: application/json
+
+{}
+
+### 400 - Formatos inválidos
+POST {{baseUrl}}/api/clientes
+Content-Type: application/json
+
+{
+  "nombre": "Pedro",
+  "apellido": "García",
+  "dni": "123",
+  "telefono": "900123456",
+  "email": "correo-invalido"
+}
+
+### 400 - Edad negativa
+POST {{baseUrl}}/api/mascotas
+Content-Type: application/json
+
+{
+  "nombre": "Toby",
+  "especie": "Perro",
+  "raza": "Mestizo",
+  "edad": -1,
+  "clienteId": {{clienteId}}
+}
+
+### 400 - Filtro obligatorio ausente
+GET {{baseUrl}}/api/mascotas/buscar
+
+### 404 - Recurso inexistente
+GET {{baseUrl}}/api/clientes/2147483647
+
+### 404 - Cliente inexistente en ruta anidada
+GET {{baseUrl}}/api/clientes/2147483647/mascotas
+
+### 204 - Eliminar la mascota creada para esta prueba
+DELETE {{baseUrl}}/api/mascotas/{{mascotaId}}
+
+### 204 - Eliminar cliente cuando ya no tenga mascotas
+DELETE {{baseUrl}}/api/clientes/{{clienteId}}
+
+### 404 - Ejecutar nuevamente después de eliminar
+DELETE {{baseUrl}}/api/clientes/{{clienteId}}
