@@ -7,9 +7,20 @@ public class VeterinariaContext(DbContextOptions<VeterinariaContext> options) : 
 {
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<Mascota> Mascotas => Set<Mascota>();
+    public DbSet<Usuario> Usuarios => Set<Usuario>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Usuario>(e =>
+        {
+            e.ToTable("Usuarios", t => t.HasCheckConstraint("CK_Usuarios_Rol",
+                "[Rol] IN ('Recepcionista', 'Veterinario')"));
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Correo).HasMaxLength(120).IsRequired();
+            e.HasIndex(x => x.Correo).IsUnique().HasDatabaseName("UX_Usuarios_Correo");
+            e.Property(x => x.ClaveHash).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Rol).HasMaxLength(30).IsRequired();
+        });
         modelBuilder.Entity<Cliente>(e =>
         {
             e.ToTable("Clientes");

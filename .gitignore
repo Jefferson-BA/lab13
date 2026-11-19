@@ -13,7 +13,7 @@ x86/
 *.cachefile
 *.binlog
 msbuild.log
-
+docs
 # Visual Studio: estado local, IntelliSense y archivos del usuario
 .vs/
 *.suo

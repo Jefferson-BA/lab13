@@ -1,15 +1,78 @@
 @baseUrl = http://localhost:5130
 @clienteId = 1
 @mascotaId = 1
+@tokenRecepcionista = PEGAR_TOKEN_DE_RECEPCION
+@tokenVeterinario = PEGAR_TOKEN_DE_VETERINARIA
+
+
+### S14 - Login Recepcionista: 200; copiar token en tokenRecepcionista
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{"correo":"recepcion@veterinaria.test","clave":"Veterinaria2026!"}
+
+### S14 - Login Veterinario: 200; copiar token en tokenVeterinario
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{"correo":"veterinario@veterinaria.test","clave":"Veterinaria2026!"}
+
+### S14 - Perfil Recepcionista: 200, tomado de los claims
+GET {{baseUrl}}/api/auth/perfil
+Authorization: Bearer {{tokenRecepcionista}}
+
+### S14 - Perfil Veterinario: 200
+GET {{baseUrl}}/api/auth/perfil
+Authorization: Bearer {{tokenVeterinario}}
+
+### S14 - Perfil sin token: 401
+GET {{baseUrl}}/api/auth/perfil
+
+### S14 - Login incorrecto: 401
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{"correo":"recepcion@veterinaria.test","clave":"Incorrecta2026!"}
+
+### S14 - Registro público: 201 (si se repite el correo, 409)
+POST {{baseUrl}}/api/auth/registro
+Content-Type: application/json
+
+{"correo":"nuevo@veterinaria.test","clave":"Veterinaria2026!"}
+
+### S14 - El cliente no puede elegir rol: 400
+POST {{baseUrl}}/api/auth/registro
+Content-Type: application/json
+
+{"correo":"otro@veterinaria.test","clave":"Veterinaria2026!","rol":"Veterinario"}
+
+### S14 - Recepcionista intenta crear mascota: 403
+POST {{baseUrl}}/api/mascotas
+Authorization: Bearer {{tokenRecepcionista}}
+Content-Type: application/json
+
+{"nombre":"Toby","especie":"Perro","raza":"Mestizo","edad":2,"clienteId":{{clienteId}}}
+
+### S14 - Veterinario intenta crear cliente: 403
+POST {{baseUrl}}/api/clientes
+Authorization: Bearer {{tokenVeterinario}}
+Content-Type: application/json
+
+{"nombre":"Pedro","apellido":"Garcia","dni":"45678901","telefono":"954321098","email":"pedro@example.com"}
+
+### Operaciones de negocio de S13 protegidas en S14
 
 ### 200 - Listar clientes
 GET {{baseUrl}}/api/clientes
+Authorization: Bearer {{tokenRecepcionista}}
 
 ### 200 o 404 - Obtener cliente
 GET {{baseUrl}}/api/clientes/{{clienteId}}
+Authorization: Bearer {{tokenRecepcionista}}
 
 ### 201 - Copiar el Id de respuesta en clienteId para probar con este registro
 POST {{baseUrl}}/api/clientes
+Authorization: Bearer {{tokenRecepcionista}}
 Content-Type: application/json
 
 {
@@ -22,6 +85,7 @@ Content-Type: application/json
 
 ### 204 - Actualizar cliente
 PUT {{baseUrl}}/api/clientes/{{clienteId}}
+Authorization: Bearer {{tokenRecepcionista}}
 Content-Type: application/json
 
 {
@@ -34,15 +98,19 @@ Content-Type: application/json
 
 ### 200 - Ruta anidada (404 si el cliente no existe)
 GET {{baseUrl}}/api/clientes/{{clienteId}}/mascotas
+Authorization: Bearer {{tokenRecepcionista}}
 
 ### 200 - Listar mascotas
 GET {{baseUrl}}/api/mascotas
+Authorization: Bearer {{tokenRecepcionista}}
 
 ### 200 o 404 - Obtener mascota
 GET {{baseUrl}}/api/mascotas/{{mascotaId}}
+Authorization: Bearer {{tokenRecepcionista}}
 
 ### 201 - Crear mascota; copiar el Id devuelto en mascotaId
 POST {{baseUrl}}/api/mascotas
+Authorization: Bearer {{tokenVeterinario}}
 Content-Type: application/json
 
 {
@@ -55,6 +123,7 @@ Content-Type: application/json
 
 ### 204 - Actualizar mascota
 PUT {{baseUrl}}/api/mascotas/{{mascotaId}}
+Authorization: Bearer {{tokenVeterinario}}
 Content-Type: application/json
 
 {
@@ -67,12 +136,15 @@ Content-Type: application/json
 
 ### 200 - Filtro por query string
 GET {{baseUrl}}/api/mascotas/buscar?especie=Perro
+Authorization: Bearer {{tokenRecepcionista}}
 
 ### 409 - Ejecutar mientras el cliente tenga al menos una mascota
 DELETE {{baseUrl}}/api/clientes/{{clienteId}}
+Authorization: Bearer {{tokenRecepcionista}}
 
 ### 409 - Edad superior a 30 validada por el servicio
 POST {{baseUrl}}/api/mascotas
+Authorization: Bearer {{tokenVeterinario}}
 Content-Type: application/json
 
 {
@@ -85,6 +157,7 @@ Content-Type: application/json
 
 ### 409 - Cliente inexistente
 POST {{baseUrl}}/api/mascotas
+Authorization: Bearer {{tokenVeterinario}}
 Content-Type: application/json
 
 {
@@ -97,12 +170,14 @@ Content-Type: application/json
 
 ### 400 - Campos obligatorios ausentes
 POST {{baseUrl}}/api/clientes
+Authorization: Bearer {{tokenRecepcionista}}
 Content-Type: application/json
 
 {}
 
 ### 400 - Formatos inválidos
 POST {{baseUrl}}/api/clientes
+Authorization: Bearer {{tokenRecepcionista}}
 Content-Type: application/json
 
 {
@@ -115,6 +190,7 @@ Content-Type: application/json
 
 ### 400 - Edad negativa
 POST {{baseUrl}}/api/mascotas
+Authorization: Bearer {{tokenVeterinario}}
 Content-Type: application/json
 
 {
@@ -127,18 +203,24 @@ Content-Type: application/json
 
 ### 400 - Filtro obligatorio ausente
 GET {{baseUrl}}/api/mascotas/buscar
+Authorization: Bearer {{tokenRecepcionista}}
 
 ### 404 - Recurso inexistente
 GET {{baseUrl}}/api/clientes/2147483647
+Authorization: Bearer {{tokenRecepcionista}}
 
 ### 404 - Cliente inexistente en ruta anidada
 GET {{baseUrl}}/api/clientes/2147483647/mascotas
+Authorization: Bearer {{tokenRecepcionista}}
 
 ### 204 - Eliminar la mascota creada para esta prueba
 DELETE {{baseUrl}}/api/mascotas/{{mascotaId}}
+Authorization: Bearer {{tokenVeterinario}}
 
 ### 204 - Eliminar cliente cuando ya no tenga mascotas
 DELETE {{baseUrl}}/api/clientes/{{clienteId}}
+Authorization: Bearer {{tokenRecepcionista}}
 
 ### 404 - Ejecutar nuevamente después de eliminar
 DELETE {{baseUrl}}/api/clientes/{{clienteId}}
+Authorization: Bearer {{tokenRecepcionista}}

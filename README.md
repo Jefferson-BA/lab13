@@ -1,6 +1,8 @@
-# Laboratorio 13 API de gestión veterinaria
+# Laboratorios 13 y 14 API de gestión veterinaria con JWT
 
-Implementación en C# y ASP.NET Core .NET 10 con SQL Server, Entity Framework Core, DTOs y AutoMapper. Permite administrar clientes y sus mascotas mediante doce operaciones REST asíncronas.
+Implementación en C# y ASP.NET Core .NET 10 con SQL Server, Entity Framework Core, DTOs y AutoMapper. La semana 14 agrega registro, login, perfil y permisos JWT a las doce operaciones de clientes y mascotas, conservando los cuatro proyectos.
+
+La entrega de la semana 14 está en [docs/Laboratorio14.md](docs/Laboratorio14.md), con tema, roles, matriz de permisos, pruebas y sustentación de seguridad.
 
 ## Ejecutar en este equipo
 
@@ -9,6 +11,7 @@ Requisitos: SDK de .NET 10, SQL Server LocalDB y `sqlcmd`. Los tres están dispo
 Desde esta carpeta, en PowerShell:
 
 ```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Configurar-Local.ps1
 powershell -ExecutionPolicy Bypass -File .\scripts\Inicializar-BaseDatos.ps1
 dotnet build .\lab13.slnx
 dotnet run --project .\VeterinariaApp.Api --launch-profile http
@@ -16,9 +19,13 @@ dotnet run --project .\VeterinariaApp.Api --launch-profile http
 
 Abrir <http://localhost:5130/swagger>. En Visual Studio, abrir `lab13.slnx`, establecer `VeterinariaApp.Api` como proyecto de inicio y ejecutar el perfil `http`.
 
-La base ya fue creada y cargada con 3 clientes y 5 mascotas. Repetir el script no elimina datos ni vuelve a insertar las muestras si ya hay clientes. No se crean tablas automáticamente al iniciar la API: el script SQL es el punto de partida del modelo de base de datos.
+La base fue creada y cargada con 3 clientes, 5 mascotas y 2 usuarios de ejemplo, uno por rol. Las cuentas son `recepcion@veterinaria.test` y `veterinario@veterinaria.test`; su contraseña exclusiva de laboratorio es `Veterinaria2026!`. El registro nuevo siempre asigna Recepcionista. Para probar las rutas protegidas, iniciar sesión en `/api/auth/login`, pulsar Authorize en Swagger y pegar solo el token.
 
-Si se usa otra instancia de SQL Server, ejecutar el SQL en ella y ajustar `ConnectionStrings:VeterinariaDB` en `VeterinariaApp.Api/appsettings.json`. También puede sobrescribirse con la variable `ConnectionStrings__VeterinariaDB`. La cadena incluida usa autenticación de Windows y LocalDB. `TrustServerCertificate=True` corresponde al entorno local del laboratorio.
+El script `Configurar-Local.ps1` guarda la conexión, la clave JWT aleatoria y la duración en secretos locales de .NET, fuera del repositorio. `appsettings.json` conserva únicamente los nombres de configuración y valores vacíos o cero para esos campos. Ejecutar nuevamente el script cambia la clave e invalida tokens anteriores.
+
+Repetir el inicializador SQL no elimina datos ni vuelve a insertar las muestras si ya hay clientes. No se crean tablas automáticamente al iniciar la API: el script SQL es el punto de partida del modelo de base de datos.
+
+Si se usa otra instancia de SQL Server, indicar `-Servidor` al ejecutar ambos scripts. La conexión privada usa autenticación de Windows y se guarda en secretos locales de .NET. También puede configurarse mediante `ConnectionStrings__VeterinariaDB`. La confianza en el certificado corresponde únicamente al entorno local del laboratorio.
 
 ## Tema y dominio
 
@@ -41,10 +48,10 @@ Las referencias directas entre proyectos siguen esta cadena:
 VeterinariaApp.Api → VeterinariaApp.Negocio → VeterinariaApp.Datos → VeterinariaApp.Entidades
 ```
 
-- `VeterinariaApp.Entidades`: modelos `Cliente` y `Mascota`; seis DTOs en `DTOs/`.
-- `VeterinariaApp.Datos`: `VeterinariaContext` y dos interfaces con sus repositorios en `Repositorios/`.
-- `VeterinariaApp.Negocio`: excepción, `MappingProfile` y dos interfaces con sus servicios en `Servicios/`.
-- `VeterinariaApp.Api`: dos controladores y configuración de servicios, EF, AutoMapper y Swagger en `Program.cs`.
+- `VeterinariaApp.Entidades`: modelos Cliente, Mascota y Usuario; DTOs de clientes, mascotas y autenticación en `DTOs/`; constantes de Roles.
+- `VeterinariaApp.Datos`: `VeterinariaContext` y tres interfaces con sus repositorios en `Repositorios/`.
+- `VeterinariaApp.Negocio`: excepción, `MappingProfile` y tres interfaces con sus servicios en `Servicios/`.
+- `VeterinariaApp.Api`: tres controladores y configuración de servicios, EF, AutoMapper, autenticación JWT y Swagger en `Program.cs`.
 
 El código completo está en esos proyectos. Se reemplazó la plantilla WeatherForecast. Los controladores reciben únicamente interfaces de servicios y DTOs. `Program.cs` es el punto de composición y registra las implementaciones de las distintas capas. Las referencias de .NET son transitivas: el proyecto API puede ver los DTOs sin agregar una referencia directa adicional.
 
@@ -62,7 +69,9 @@ Las consultas existentes devuelven `200`; POST devuelve `201` con Location y el 
 
 ## Pruebas manuales y automáticas
 
-Abrir `VeterinariaApp.Api/VeterinariaApp.Api.http` con Visual Studio o un cliente HTTP compatible. Incluye las doce operaciones y casos adicionales de error. Para Postman, usar las mismas URL, método, JSON y encabezado `Content-Type: application/json`. En Swagger, pulsar Try it out, completar los datos y ejecutar.
+Abrir `VeterinariaApp.Api/VeterinariaApp.Api.http` con Visual Studio o un cliente HTTP compatible. Incluye las quince operaciones y casos adicionales de error. También puede importarse la colección `pruebas/Veterinaria-S14.postman_collection.json`. En Swagger, pulsar Try it out, completar los datos y ejecutar.
+
+Las consultas requieren autenticación. Para modificar clientes, usar el token Recepcionista; para modificar mascotas, usar Veterinario. Los ejemplos de códigos de esta sección requieren esos permisos. El archivo HTTP explica dónde pegar cada token.
 
 Para los ejemplos, usar un cliente y una mascota creados durante la prueba. Los Id son autoincrementales y pueden tener saltos: copiar el Id devuelto por POST en `clienteId` y `mascotaId` del archivo `.http`. `2147483647` se reserva en los ejemplos como un Id que no existe en la base de laboratorio.
 
@@ -82,13 +91,13 @@ dotnet build .\lab13.slnx
 python .\scripts\probar_api.py
 ```
 
-No requiere paquetes de Python externos. Crea registros propios, los limpia al finalizar y detiene el proceso que inició. Verifica las doce rutas, los seis códigos, el encabezado Location, los campos mapeados, la actualización de propietario y el límite de 30 años. Guarda el resultado JSON y el log en `artifacts/`. No modificar simultáneamente sus registros durante la ejecución.
+No requiere paquetes de Python externos. Crea registros propios, los limpia al finalizar y detiene el proceso que inició. Verifica las quince operaciones, los ocho códigos, ambos roles, la firma y vigencia JWT, BCrypt, correo único concurrente y las reglas de S13. Guarda el resultado JSON, el log y las evidencias HTML en `artifacts/s14/`. No modificar simultáneamente sus registros durante la ejecución.
 
 ## Reconstrucción y Database First
 
 Los comandos exactos para crear los cuatro proyectos y agregar los paquetes están en `docs/Comandos.md`. `scripts/Scaffold.ps1` ejecuta ingeniería inversa hacia `artifacts/scaffold/`, sin sobrescribir el código implementado. La separación de entidades en otro proyecto requiere trasladar los archivos generados y ajustar sus namespaces; los DTOs, servicios y reglas se escriben por separado.
 
-La tabla de sustentación de los seis CreateMap está en [docs/Mapeos.md](docs/Mapeos.md). Las instrucciones de reconstrucción están en [docs/Comandos.md](docs/Comandos.md).
+La tabla de sustentación de los siete CreateMap está en [docs/Mapeos.md](docs/Mapeos.md). Las instrucciones de reconstrucción están en [docs/Comandos.md](docs/Comandos.md).
 
 ## Observaciones técnicas
 
@@ -104,7 +113,7 @@ La tabla de sustentación de los seis CreateMap está en [docs/Mapeos.md](docs/M
 
 ## Versiones y referencias
 
-Se utilizan EF Core SQL Server, Design y Tools 10.0.12; AutoMapper 16.3.0 y Swashbuckle.AspNetCore 11.0.0. Se agregó Pkcs 10.0.13 para corregir las advertencias de vulnerabilidad de la dependencia transitiva anterior. El proyecto sigue dirigido a net10.0.
+Se utilizan EF Core SQL Server, Design y Tools 10.0.12; AutoMapper 16.3.0, Swashbuckle.AspNetCore 11.0.0, BCrypt.Net-Next 4.2.0, System.IdentityModel.Tokens.Jwt 8.23.0 y JwtBearer 10.0.15. Se agregó Pkcs 10.0.13 para corregir las advertencias de vulnerabilidad de la dependencia transitiva anterior. El proyecto sigue dirigido a net10.0.
 
 AutoMapper permite configurar su clave con `AutoMapper__LicenseKey` o secretos de usuario; no se incluye una clave en el repositorio. Consultar las condiciones aplicables y la [configuración oficial de licencia](https://docs.automapper.io/en/latest/License-configuration.html). El arranque sin clave utilizado en las pruebas emite la advertencia de licencia de la biblioteca.
 

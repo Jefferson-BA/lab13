@@ -7,4 +7,6 @@ if ($Servidor -eq '(localdb)\MSSQLLocalDB') {
 }
 & sqlcmd -S $Servidor -E -b -f 65001 -i (Join-Path $raizLaboratorio 'VeterinariaDB.sql')
 if ($LASTEXITCODE -ne 0) { throw 'No se pudo inicializar VeterinariaDB.' }
+& sqlcmd -S $Servidor -E -b -f 65001 -i (Join-Path $raizLaboratorio 'sql/Usuarios-S14.sql')
+if ($LASTEXITCODE -ne 0) { throw 'No se pudo crear la tabla Usuarios.' }
 Write-Host 'VeterinariaDB lista con los datos de ejemplo.'

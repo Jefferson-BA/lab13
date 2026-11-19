@@ -7,6 +7,7 @@ public class MappingProfile : Profile
 {
     public MappingProfile()
     {
+        CreateMap<Usuario, UsuarioDto>();
         CreateMap<Cliente, ClienteDto>();
         CreateMap<ClienteCrearDto, Cliente>()
             .ForMember(d => d.Id, o => o.Ignore())
