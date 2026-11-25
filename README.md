@@ -1,4 +1,98 @@
-# Laboratorios 13 y 14 API de gestión veterinaria con JWT
+# Laboratorios 13 14 y 15 API de gestión veterinaria
+
+## Semana 15 Gateway y microservicio Citas
+
+### Variables en un archivo local
+
+Copiar la plantilla desde la raíz, sin sobrescribir un archivo privado existente:
+
+```powershell
+if (-not (Test-Path .env.local)) { Copy-Item .env.example .env.local }
+```
+
+Completar Jwt__Clave con una clave aleatoria y ConnectionStrings__VeterinariaDB con los datos de Neon en formato Npgsql. La plantilla usa TLS con verificación de certificado y nombre de servidor. La conexión Neon es una preparación: la API aún utiliza UseSqlServer y requiere adaptar el proveedor EF Core, el modelo y los scripts SQL antes de conectarse a PostgreSQL.
+
+ASP.NET Core no carga .env.local automáticamente. Para importar las variables correspondientes a cada servicio y ejecutarlo, usar una terminal por proyecto:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Iniciar-ConEnv.ps1 -Proyecto GatewayApi
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Iniciar-ConEnv.ps1 -Proyecto VeterinariaApp.Api
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Iniciar-ConEnv.ps1 -Proyecto VeterinariaApp.Citas
+```
+
+El script acepta líneas NOMBRE=valor, comentarios de línea completa y comillas exteriores simples o dobles. No ejecuta expresiones ni expande variables. Las variables se limitan al proceso iniciado; la conexión de base de datos se importa solo para la API. No iniciar otra copia sobre los mismos puertos si los servicios ya están ejecutándose.
+
+.env.local está excluido de Git y del contexto Docker. En Render configurar Environment por servicio usando las secciones de .env.example; establecer ASPNETCORE_ENVIRONMENT=Production y ASPNETCORE_HTTP_PORTS=8080. Los valores se ingresan sin las comillas exteriores del archivo. El argumento Docker PROJECT se configura por separado al construir cada imagen.
+
+Referencias: [variables de entorno de .NET](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers), [seguridad de Npgsql](https://www.npgsql.org/doc/security.html).
+
+La solución ahora incluye GatewayApi y VeterinariaApp.Citas. Los GET de clientes y mascotas son públicos para cumplir la S15; la escritura conserva los permisos por rol de la S14. El perfil y todas las citas requieren JWT. No se comparten clases ni base de datos con Citas.
+
+Puertos locales: API 5130, Gateway 5143 y Citas 5020. El cliente usa http://localhost:5143/gateway. Swagger de la API sigue disponible en http://localhost:5130/swagger para inspección.
+
+Si los secretos de la API ya están configurados, sincronizar el JWT sin cambiar su clave:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Configurar-GatewayLocal.ps1
+dotnet build lab13.slnx
+```
+
+Si se vuelve a ejecutar Configurar-Local.ps1, repetir la sincronización y reiniciar los tres servicios.
+
+Ejecutar cada comando en una terminal distinta:
+
+```powershell
+dotnet run --project VeterinariaApp.Api --launch-profile http
+dotnet run --project GatewayApi --launch-profile http
+dotnet run --project VeterinariaApp.Citas --launch-profile http
+```
+
+En Visual Studio también se puede usar Solución → Configurar proyectos de inicio → Varios proyectos y establecer Iniciar para esos tres proyectos, dejando las bibliotecas sin acción.
+
+Las siete rutas están en GatewayApi/ocelot.json:
+
+- POST /gateway/auth/{everything} → /api/auth/{everything}, público para login y registro.
+- GET /gateway/auth/perfil → /api/auth/perfil, requiere token.
+- GET /gateway/clientes/{everything} → /api/clientes/{everything}, público.
+- POST PUT DELETE /gateway/clientes/{everything} → /api/clientes/{everything}, requiere token; Recepcionista en la API.
+- GET /gateway/mascotas/{everything} → /api/mascotas/{everything}, público.
+- POST PUT DELETE /gateway/mascotas/{everything} → /api/mascotas/{everything}, requiere token; Veterinario en la API.
+- GET /gateway/citas/{everything} → /api/citas/{everything}, requiere token; lista o por ID, en memoria.
+
+El comodín también admite la lista sin ID. Ocelot valida Bearer y reenvía el token; cada servicio lo valida nuevamente con la misma clave, emisor y audiencia. Los roles los controla la API original.
+
+Pruebas contra servicios ya iniciados:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Probar-Gateway.ps1
+# Detener solo Citas y ejecutar:
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Probar-Gateway.ps1 -CitasDetenidas
+# Volver a iniciar Citas al terminar.
+```
+
+Se comprobaron localmente 200, 201, 204, 401, 403, 404 y 502. El script crea una cuenta Recepcionista única por ejecución y elimina el cliente temporal. No imprime claves ni tokens. La prueba con Citas detenido confirma 502 y que clientes sigue funcionando. Las pruebas de S14 reflejan los permisos anteriores y no sustituyen estas pruebas de S15.
+
+### Publicación pendiente
+
+Dockerfile permite publicar cada servicio usando el argumento PROJECT (GatewayApi, VeterinariaApp.Api o VeterinariaApp.Citas). Se construye desde la raíz del repositorio y escucha HTTP en 8080 dentro del contenedor.
+
+```powershell
+docker build --build-arg PROJECT=GatewayApi -t veterinaria-gateway .
+docker build --build-arg PROJECT=VeterinariaApp.Api -t veterinaria-api .
+docker build --build-arg PROJECT=VeterinariaApp.Citas -t veterinaria-citas .
+```
+
+Configurar Jwt__Clave, Jwt__Emisor y Jwt__Audiencia iguales en los tres servicios mediante secretos del proveedor. Solo la API necesita ConnectionStrings__VeterinariaDB y Jwt__MinutosExpiracion. Ejecutar los scripts SQL en la base de nube sin borrar datos existentes. Los secretos locales de .NET no se copian a las imágenes.
+
+Cuando existan las tres URL públicas HTTPS, ejecutar Configurar-RutasNube.ps1. Genera GatewayApi/ocelot.Production.json con los hosts reales. El gateway lo carga en Production, y las variables de entorno pueden sobrescribirlo.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Configurar-RutasNube.ps1 -Gateway https://HOST-GATEWAY -Api https://HOST-API -Citas https://HOST-CITAS
+```
+
+La publicación, la elección de proveedor gratuito y base de datos, las pruebas públicas y las capturas siguen pendientes. No hay URL pública desplegada. Al elegir proveedor revisar su soporte para .NET 10, SQL Server y las condiciones de AutoMapper antes de usar producción.
+
+Para el video obligatorio de al menos 10 minutos, con cámara encendida: explicar los tres servicios, upstream y downstream, la validación JWT duplicada y su costo, los roles, las pruebas públicas y la caída independiente de Citas. El gateway simplifica la dirección usada por el cliente, pero agrega otro componente que debe configurarse y mantenerse.
 
 Implementación en C# y ASP.NET Core .NET 10 con SQL Server, Entity Framework Core, DTOs y AutoMapper. La semana 14 agrega registro, login, perfil y permisos JWT a las doce operaciones de clientes y mascotas, conservando los cuatro proyectos.
 

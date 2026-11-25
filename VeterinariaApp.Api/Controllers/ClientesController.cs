@@ -13,10 +13,12 @@ namespace VeterinariaApp.Api.Controllers;
 public class ClientesController(IClienteService service) : ControllerBase
 {
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<List<ClienteDto>>> ObtenerTodos(CancellationToken ct) =>
         Ok(await service.ObtenerTodosAsync(ct));
 
     [HttpGet("{id:int}")]
+    [AllowAnonymous]
     [ProducesResponseType<ClienteDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ClienteDto>> ObtenerPorId(int id, CancellationToken ct)
@@ -79,6 +81,7 @@ public class ClientesController(IClienteService service) : ControllerBase
     }
 
     [HttpGet("{clienteId:int}/mascotas")]
+    [AllowAnonymous]
     [ProducesResponseType<List<MascotaDto>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<List<MascotaDto>>> ObtenerMascotas(int clienteId, CancellationToken ct)

@@ -1,0 +1,17 @@
+**/bin
+**/obj
+.git
+.vs
+.idea
+artifacts
+docs
+**/*.user
+**/secrets.json
+**/appsettings.*.Local.json
+**/appsettings.Local.json
+**/appsettings.Secrets.json
+.env
+.env.*
+**/*.pfx
+**/*.key
+**/*.pem
