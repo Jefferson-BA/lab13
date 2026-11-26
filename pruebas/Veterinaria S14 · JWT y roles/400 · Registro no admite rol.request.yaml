@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/registro"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "correo": "otro@veterinaria.test",
+      "clave": "Veterinaria2026!",
+      "rol": "Veterinario"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 400", function () { pm.response.to.have.status(400); });
+    language: text/javascript
+order: 10000

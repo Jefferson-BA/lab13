@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/gateway/clientes"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "Prueba S15",
+      "apellido": "Postman",
+      "dni": "{{dniPrueba}}",
+      "telefono": "999123456",
+      "email": "{{correoPrueba}}"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{token}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 201", () => pm.response.to.have.status(201));
+      if (pm.response.code === 201) pm.collectionVariables.set("clienteId", pm.response.json().id);
+    language: text/javascript
+order: 10000

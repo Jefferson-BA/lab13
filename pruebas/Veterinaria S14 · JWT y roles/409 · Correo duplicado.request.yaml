@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/registro"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "correo": "{{correoNuevo}}",
+      "clave": "Veterinaria2026!"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 409", function () { pm.response.to.have.status(409); });
+    language: text/javascript
+order: 8000

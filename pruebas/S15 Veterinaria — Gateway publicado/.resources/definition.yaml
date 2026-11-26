@@ -1,0 +1,10 @@
+$kind: collection
+description: "Ejecutar primero la carpeta Servicios activos en orden. Genera una cuenta Recepcionista y elimina el cliente temporal. Las claves de prueba y el token se generan solo al ejecutar; no reexportar valores privados. Para local: baseUrl=http://localhost:5143 y citasUrl=http://localhost:5020. La carpeta Caida manual requiere coordinar la detencion de Citas; no ejecutarla mientras este disponible. Render puede devolver 503 al suspender un servicio: registrar el codigo real y no presentarlo como 502."
+variables:
+  baseUrl: https://veterinaria-gateway.onrender.com
+  citasUrl: https://veterinaria-citas.onrender.com
+  token: ""
+  correoPrueba: ""
+  clavePrueba: ""
+  dniPrueba: ""
+  clienteId: ""

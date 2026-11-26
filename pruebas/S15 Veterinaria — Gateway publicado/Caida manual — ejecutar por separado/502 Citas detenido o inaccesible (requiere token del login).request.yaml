@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/gateway/citas"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{token}}"
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 502", () => pm.response.to.have.status(502));
+    language: text/javascript
+order: 1000

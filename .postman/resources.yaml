@@ -1,0 +1,12 @@
+# Use this workspace to collaborate
+workspace:
+  id: cf26fa5c-3a8d-4c3b-87b5-c49c803c86e1
+
+localResources:
+  collections:
+    - ../pruebas/Veterinaria S14 · JWT y roles
+    - ../pruebas/S15 Veterinaria — Gateway publicado
+
+cloudResources:
+  collections:
+    ../postman/collections/S15 Veterinaria — Gateway publicado Copy: 80e842fa-a09e-4d40-b67e-d8ef71916574

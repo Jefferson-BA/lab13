@@ -1,0 +1,9 @@
+$kind: collection
+description: Ejecutar en orden contra la base de laboratorio. Los login guardan los tokens; no exportar variables con tokens vigentes. Las cuentas y claves de demostración se encuentran en el SQL.
+variables:
+  baseUrl: http://localhost:5130
+  tokenRecepcionista: ""
+  tokenVeterinario: ""
+  clienteId: "1"
+  mascotaId: "1"
+  correoNuevo: ""

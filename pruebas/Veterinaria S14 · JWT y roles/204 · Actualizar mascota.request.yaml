@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/api/mascotas/{{mascotaId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "Toby",
+      "especie": "Perro",
+      "raza": "Mestizo",
+      "edad": 3,
+      "clienteId": {{clienteId}}
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{tokenVeterinario}}"
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 204", function () { pm.response.to.have.status(204); });
+    language: text/javascript
+order: 23000

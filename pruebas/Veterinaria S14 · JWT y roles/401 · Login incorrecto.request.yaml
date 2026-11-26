@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "correo": "recepcion@veterinaria.test",
+      "clave": "Incorrecta2026!"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 401", function () { pm.response.to.have.status(401); });
+    language: text/javascript
+order: 6000

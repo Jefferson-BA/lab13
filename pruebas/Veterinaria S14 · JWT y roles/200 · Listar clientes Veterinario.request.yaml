@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/clientes"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{tokenVeterinario}}"
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 200", function () { pm.response.to.have.status(200); });
+    language: text/javascript
+order: 13000

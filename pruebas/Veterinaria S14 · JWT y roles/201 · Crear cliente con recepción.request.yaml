@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/api/clientes"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "Pedro",
+      "apellido": "Garcia",
+      "dni": "45678901",
+      "telefono": "954321098",
+      "email": "pedro@example.com"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{tokenRecepcionista}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 201", function () { pm.response.to.have.status(201); });
+      if (pm.response.code === 201) pm.collectionVariables.set("clienteId", pm.response.json().id);
+    language: text/javascript
+order: 15000

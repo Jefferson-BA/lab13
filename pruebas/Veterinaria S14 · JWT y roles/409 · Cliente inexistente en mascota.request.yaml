@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/api/mascotas"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "Toby",
+      "especie": "Perro",
+      "raza": "Mestizo",
+      "edad": 2,
+      "clienteId": 2147483647
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{tokenVeterinario}}"
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 409", function () { pm.response.to.have.status(409); });
+    language: text/javascript
+order: 27000

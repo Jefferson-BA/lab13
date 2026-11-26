@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/api/clientes/{{clienteId}}"
+method: PUT
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "nombre": "Pedro",
+      "apellido": "Garcia",
+      "dni": "45678901",
+      "telefono": "900123456",
+      "email": "pedro@example.com"
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{tokenRecepcionista}}"
+scripts:
+  - type: afterResponse
+    code: pm.test("HTTP 204", function () { pm.response.to.have.status(204); });
+    language: text/javascript
+order: 17000
