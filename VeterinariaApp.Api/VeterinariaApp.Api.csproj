@@ -22,6 +22,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\VeterinariaApp.Negocio\VeterinariaApp.Negocio.csproj" />
+    <Content Include="..\sql\Neon-S15.sql" Link="sql\Neon-S15.sql"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

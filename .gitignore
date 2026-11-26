@@ -78,6 +78,8 @@ PublishScripts/
 # Configuracion privada: conservar appsettings.json y Development compartidos
 .env
 .env.*
+*.env.local
+*.env.production
 !.env.example
 !.env.sample
 appsettings.Local.json

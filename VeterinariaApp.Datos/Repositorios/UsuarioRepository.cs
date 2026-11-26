@@ -1,4 +1,5 @@
 using Microsoft.Data.SqlClient;
+using Npgsql;
 using Microsoft.EntityFrameworkCore;
 using VeterinariaApp.Entidades;
 
@@ -18,7 +19,10 @@ public class UsuarioRepository(VeterinariaContext context) : IUsuarioRepository
         {
             await context.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
+        catch (DbUpdateException ex) when (
+            ex.InnerException is SqlException { Number: 2601 or 2627 } ||
+            ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation,
+                ConstraintName: "UX_Usuarios_Correo" })
         {
             throw new CorreoDuplicadoException(ex);
         }

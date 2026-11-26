@@ -2,6 +2,10 @@
 
 ## Semana 15 Gateway y microservicio Citas
 
+El despliegue actual en Render se describe en [despliegue/README.md](despliegue/README.md). Esa carpeta incluye plantillas separadas de variables para API y gateway. render.yaml es una alternativa opcional para crear ambos mediante Blueprint con plan gratuito. Citas ya esta publicado y no se vuelve a crear.
+
+Para el gateway se recomiendan Servicios__ApiUrl y Servicios__CitasUrl con los origenes HTTPS publicos reales. Estas variables actualizan los destinos de Ocelot al iniciar y evitan introducir 21 variables por ruta. API y gateway exponen /health para comprobar el arranque; la prueba completa de base de datos se realiza consultando clientes o mascotas.
+
 ### Variables en un archivo local
 
 Copiar la plantilla desde la raíz, sin sobrescribir un archivo privado existente:
@@ -10,7 +14,15 @@ Copiar la plantilla desde la raíz, sin sobrescribir un archivo privado existent
 if (-not (Test-Path .env.local)) { Copy-Item .env.example .env.local }
 ```
 
-Completar Jwt__Clave con una clave aleatoria y ConnectionStrings__VeterinariaDB con los datos de Neon en formato Npgsql. La plantilla usa TLS con verificación de certificado y nombre de servidor. La conexión Neon es una preparación: la API aún utiliza UseSqlServer y requiere adaptar el proveedor EF Core, el modelo y los scripts SQL antes de conectarse a PostgreSQL.
+Completar Jwt__Clave con una clave aleatoria y ConnectionStrings__VeterinariaDB con los datos de Neon en formato Npgsql. La plantilla usa TLS con verificación de certificado y nombre de servidor. Establecer BaseDatos__Proveedor=PostgreSQL para Neon. Si se omite, la API conserva SqlServer para la configuración histórica con LocalDB.
+
+La base histórica VeterinariaDB está en SQL Server LocalDB en este equipo, no en MySQL ni en Render. Neon es otra base; no se transfieren automáticamente los registros de LocalDB. El esquema PostgreSQL está en sql/Neon-S15.sql, sin cuentas ni contraseñas de muestra. Inicializarlo una vez (también admite repetición sin borrar datos):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Iniciar-ConEnv.ps1 -Proyecto VeterinariaApp.Api -InicializarBaseDatos
+```
+
+El comando explícito --inicializar-bd crea Clientes, Mascotas, Usuarios, índices y restricciones y termina. El arranque normal de la API no modifica el esquema. Para el cambio de proveedor se adaptaron los identificadores SQL de las restricciones y la traducción del error de correo duplicado. Los roles y reglas de negocio se conservan.
 
 ASP.NET Core no carga .env.local automáticamente. Para importar las variables correspondientes a cada servicio y ejecutarlo, usar una terminal por proyecto:
 
@@ -90,7 +102,9 @@ Cuando existan las tres URL públicas HTTPS, ejecutar Configurar-RutasNube.ps1. 
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Configurar-RutasNube.ps1 -Gateway https://HOST-GATEWAY -Api https://HOST-API -Citas https://HOST-CITAS
 ```
 
-La publicación, la elección de proveedor gratuito y base de datos, las pruebas públicas y las capturas siguen pendientes. No hay URL pública desplegada. Al elegir proveedor revisar su soporte para .NET 10, SQL Server y las condiciones de AutoMapper antes de usar producción.
+Citas está publicado en https://veterinaria-citas.onrender.com; requiere JWT en /api/citas. La API local ya fue comprobada contra PostgreSQL de Neon. Quedan pendientes publicar la API y el gateway en Render y repetir las pruebas públicas y las capturas. Revisar las condiciones de AutoMapper antes de usar producción.
+
+En el Web Service de la API, usar Docker, plan Free, raíz vacía y estas nueve variables: PROJECT=VeterinariaApp.Api, ASPNETCORE_ENVIRONMENT=Production, ASPNETCORE_HTTP_PORTS=8080, BaseDatos__Proveedor=PostgreSQL, Jwt__Emisor=VeterinariaApp.Api, Jwt__Audiencia=VeterinariaApp.Clientes, Jwt__Clave (igual a Citas), Jwt__MinutosExpiracion=60 y ConnectionStrings__VeterinariaDB (cadena Npgsql privada). No agregar la conexión de base de datos a los otros servicios. En Render copiar el valor de conexión sin las comillas exteriores del archivo .env.local.
 
 Para el video obligatorio de al menos 10 minutos, con cámara encendida: explicar los tres servicios, upstream y downstream, la validación JWT duplicada y su costo, los roles, las pruebas públicas y la caída independiente de Citas. El gateway simplifica la dirección usada por el cliente, pero agrega otro componente que debe configurarse y mantenerse.
 

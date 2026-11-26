@@ -3,7 +3,8 @@ param(
     [ValidateSet('GatewayApi', 'VeterinariaApp.Api', 'VeterinariaApp.Citas')]
     [string]$Proyecto,
     [string]$Archivo = '.env.local',
-    [switch]$SoloValidar
+    [switch]$SoloValidar,
+    [switch]$InicializarBaseDatos
 )
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path -Parent $PSScriptRoot
@@ -31,8 +32,8 @@ foreach ($linea in [IO.File]::ReadAllLines($Archivo)) {
         $valor = $valor.Substring(1, $valor.Length - 2)
     }
     $comun = $nombre -in @('ASPNETCORE_ENVIRONMENT','ASPNETCORE_HTTP_PORTS','Jwt__Clave','Jwt__Emisor','Jwt__Audiencia')
-    $api = $Proyecto -eq 'VeterinariaApp.Api' -and $nombre -in @('ConnectionStrings__VeterinariaDB','Jwt__MinutosExpiracion','AutoMapper__LicenseKey')
-    $gateway = $Proyecto -eq 'GatewayApi' -and ($nombre -eq 'GlobalConfiguration__BaseUrl' -or $nombre.StartsWith('Routes__'))
+    $api = $Proyecto -eq 'VeterinariaApp.Api' -and $nombre -in @('ConnectionStrings__VeterinariaDB','Jwt__MinutosExpiracion','AutoMapper__LicenseKey','BaseDatos__Proveedor')
+    $gateway = $Proyecto -eq 'GatewayApi' -and ($nombre -eq 'GlobalConfiguration__BaseUrl' -or $nombre.StartsWith('Routes__') -or $nombre -in @('Servicios__ApiUrl','Servicios__CitasUrl'))
     if ($comun -or $api -or $gateway) { $variables[$nombre] = $valor }
 }
 if ($SoloValidar) {
@@ -45,7 +46,10 @@ foreach ($nombre in $variables.Keys) {
 }
 Push-Location $raiz
 try {
-    if ($env:ASPNETCORE_ENVIRONMENT -eq 'Development') {
+    if ($InicializarBaseDatos) {
+        if ($Proyecto -ne 'VeterinariaApp.Api') { throw 'La inicializacion solo se aplica a VeterinariaApp.Api.' }
+        & dotnet run --project $Proyecto --no-launch-profile -- --inicializar-bd
+    } elseif ($env:ASPNETCORE_ENVIRONMENT -eq 'Development') {
         & dotnet run --project $Proyecto --launch-profile http
     } else {
         & dotnet run --project $Proyecto --no-launch-profile

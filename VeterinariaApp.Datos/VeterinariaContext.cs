@@ -14,6 +14,7 @@ public class VeterinariaContext(DbContextOptions<VeterinariaContext> options) : 
         modelBuilder.Entity<Usuario>(e =>
         {
             e.ToTable("Usuarios", t => t.HasCheckConstraint("CK_Usuarios_Rol",
+                Database.IsNpgsql() ? "\"Rol\" IN ('Recepcionista', 'Veterinario')" :
                 "[Rol] IN ('Recepcionista', 'Veterinario')"));
             e.HasKey(x => x.Id);
             e.Property(x => x.Correo).HasMaxLength(120).IsRequired();
@@ -33,7 +34,9 @@ public class VeterinariaContext(DbContextOptions<VeterinariaContext> options) : 
         });
         modelBuilder.Entity<Mascota>(e =>
         {
-            e.ToTable("Mascotas", t => t.HasCheckConstraint("CK_Mascotas_Edad", "[Edad] >= 0 AND [Edad] <= 30"));
+            e.ToTable("Mascotas", t => t.HasCheckConstraint("CK_Mascotas_Edad",
+                Database.IsNpgsql() ? "\"Edad\" >= 0 AND \"Edad\" <= 30" :
+                "[Edad] >= 0 AND [Edad] <= 30"));
             e.HasKey(x => x.Id);
             e.Property(x => x.Nombre).HasMaxLength(80).IsRequired();
             e.Property(x => x.Especie).HasMaxLength(50).IsRequired();

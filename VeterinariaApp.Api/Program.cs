@@ -64,9 +64,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 });
 builder.Services.AddAuthorization();
-builder.Services.AddDbContext<VeterinariaContext>(options => options.UseSqlServer(
-    builder.Configuration.GetConnectionString("VeterinariaDB")
-    ?? throw new InvalidOperationException("Falta ConnectionStrings:VeterinariaDB.")));
+var proveedor = builder.Configuration["BaseDatos:Proveedor"] ?? "SqlServer";
+var conexion = builder.Configuration.GetConnectionString("VeterinariaDB");
+if (string.IsNullOrWhiteSpace(conexion))
+    throw new InvalidOperationException("Falta ConnectionStrings:VeterinariaDB.");
+builder.Services.AddDbContext<VeterinariaContext>(options =>
+{
+    if (proveedor.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+        options.UseNpgsql(conexion);
+    else if (proveedor.Equals("SqlServer", StringComparison.OrdinalIgnoreCase))
+        options.UseSqlServer(conexion);
+    else
+        throw new InvalidOperationException("BaseDatos:Proveedor debe ser PostgreSQL o SqlServer.");
+});
 builder.Services.AddScoped<IClienteRepository, ClienteRepository>();
 builder.Services.AddScoped<IMascotaRepository, MascotaRepository>();
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
@@ -80,6 +90,17 @@ builder.Services.AddAutoMapper(cfg =>
 }, typeof(MappingProfile));
 
 var app = builder.Build();
+if (args.Contains("--inicializar-bd"))
+{
+    if (!proveedor.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("El inicializador Neon requiere BaseDatos:Proveedor=PostgreSQL.");
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<VeterinariaContext>();
+    var sql = await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "sql", "Neon-S15.sql"));
+    await db.Database.ExecuteSqlRawAsync(sql);
+    Console.WriteLine("Esquema PostgreSQL inicializado. No se eliminaron datos existentes.");
+    return;
+}
 // Detecta mapeos incompletos antes de recibir la primera petición.
 app.Services.GetRequiredService<IMapper>().ConfigurationProvider.AssertConfigurationIsValid();
 app.UseExceptionHandler();
@@ -91,4 +112,5 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 app.MapControllers();
+app.MapGet("/health", () => Results.Ok(new { estado = "ok", servicio = "api" })).AllowAnonymous();
 app.Run();

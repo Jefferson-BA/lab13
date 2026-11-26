@@ -33,6 +33,7 @@ try {
     $null = Probar POST '/gateway/clientes' 401 @{}
     $null = Probar GET '/gateway/citas' 401 $null 'token-invalido'
     $null = Probar POST '/gateway/auth/registro' 201 $cuenta
+    $null = Probar POST '/gateway/auth/registro' 409 $cuenta
     $login = Probar POST '/gateway/auth/login' 200 $cuenta
     $token = $login.token
     $null = Probar GET '/gateway/auth/perfil' 200 $null $token

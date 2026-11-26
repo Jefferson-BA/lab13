@@ -1,0 +1,60 @@
+# Opcional: New > Blueprint. Solo crea API y gateway; Citas ya esta desplegado.
+# Para el flujo manual New > Web Service, usar despliegue/*.env.example.
+# Pegar el mismo Jwt__Clave que ya usa veterinaria-citas.
+services:
+  - type: web
+    name: veterinaria-api
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: PROJECT
+        value: VeterinariaApp.Api
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "8080"
+      - key: BaseDatos__Proveedor
+        value: PostgreSQL
+      - key: Jwt__Emisor
+        value: VeterinariaApp.Api
+      - key: Jwt__Audiencia
+        value: VeterinariaApp.Clientes
+      - key: Jwt__MinutosExpiracion
+        value: "60"
+      - key: Jwt__Clave
+        sync: false
+      - key: ConnectionStrings__VeterinariaDB
+        sync: false
+  - type: web
+    name: veterinaria-gateway
+    runtime: docker
+    plan: free
+    region: oregon
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: PROJECT
+        value: GatewayApi
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "8080"
+      - key: Jwt__Emisor
+        value: VeterinariaApp.Api
+      - key: Jwt__Audiencia
+        value: VeterinariaApp.Clientes
+      - key: Jwt__Clave
+        sync: false
+      - key: GlobalConfiguration__BaseUrl
+        sync: false
+      - key: Servicios__ApiUrl
+        sync: false
+      - key: Servicios__CitasUrl
+        value: https://veterinaria-citas.onrender.com
