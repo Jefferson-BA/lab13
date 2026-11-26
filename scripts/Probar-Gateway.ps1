@@ -1,12 +1,14 @@
 param(
     [string]$BaseUrl = 'http://localhost:5143',
     [switch]$CitasDetenidas,
-    [string]$CitasDirecto = 'http://localhost:5020'
+    [string]$CitasDirecto = 'http://localhost:5020',
+    [string]$Salida = ''
 )
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Net.Http
 $cliente = [System.Net.Http.HttpClient]::new()
 $cliente.Timeout = [TimeSpan]::FromSeconds(30)
+$resultados = [System.Collections.Generic.List[object]]::new()
 function Probar([string]$Metodo, [string]$Ruta, [int]$Esperado, $Datos = $null, [string]$Token = '', [string]$Origen = $BaseUrl) {
     $peticion = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::new($Metodo), "$Origen$Ruta")
     if ($null -ne $Datos) {
@@ -16,6 +18,15 @@ function Probar([string]$Metodo, [string]$Ruta, [int]$Esperado, $Datos = $null, 
     $respuesta = $cliente.SendAsync($peticion).GetAwaiter().GetResult()
     $contenido = $respuesta.Content.ReadAsStringAsync().GetAwaiter().GetResult()
     $estado = [int]$respuesta.StatusCode
+    $resultados.Add([pscustomobject]@{
+        fechaUTC = [DateTime]::UtcNow.ToString('o')
+        metodo = $Metodo
+        url = "$Origen$Ruta"
+        esperado = $Esperado
+        recibido = $estado
+        correcto = ($estado -eq $Esperado)
+        conToken = [bool]$Token
+    })
     $respuesta.Dispose()
     $peticion.Dispose()
     if ($estado -ne $Esperado) { throw "$Metodo $Ruta esperaba $Esperado y recibio $estado." }
@@ -69,4 +80,11 @@ try {
     Write-Host 'Pruebas correctas. Cliente temporal eliminado; queda la cuenta de prueba Recepcionista.'
 } finally {
     $cliente.Dispose()
+    if ($Salida) {
+        $destino = [IO.Path]::GetFullPath($Salida)
+        $null = [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destino))
+        [IO.File]::WriteAllText($destino, (ConvertTo-Json -InputObject @($resultados.ToArray()) -Depth 5),
+            [Text.UTF8Encoding]::new($false))
+        Write-Host 'Registro de estados HTTP guardado sin claves, tokens ni cuerpos privados.'
+    }
 }
